@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type Step = "apology" | "loveQuestion" | "final";
 
@@ -21,6 +21,9 @@ export default function Home() {
   const [noCounter, setNoCounter] = useState(0);
   const [visitorId, setVisitorId] = useState("");
   const [personLabel, setPersonLabel] = useState("unknown");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const clickLockRef = useRef(false);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -60,6 +63,7 @@ export default function Home() {
   }, [noCounter]);
 
   const yesScale = Math.min(1 + noCounter * 0.15, 2.1);
+
   const trackClick = async (
     stage: TrackStage,
     action: TrackAction,
@@ -86,38 +90,72 @@ export default function Home() {
     }
   };
 
+  const unlockClick = () => {
+    setTimeout(() => {
+      clickLockRef.current = false;
+      setIsSubmitting(false);
+    }, 400);
+  };
+
   const handleNoClick = () => {
     const nextNoCounter = noCounter + 1;
     setNoCounter(nextNoCounter);
 
     if (step === "apology") {
-      trackClick("apology", "no", nextNoCounter);
+      void trackClick("apology", "no", nextNoCounter);
     }
 
     if (step === "loveQuestion") {
-      trackClick("loveQuestion", "no", nextNoCounter);
+      void trackClick("loveQuestion", "no", nextNoCounter);
     }
   };
 
-  const handleFirstYes = async () => {
-    await trackClick("apology", "yes", noCounter);
+  const handleFirstYes = () => {
+    if (clickLockRef.current) return;
+
+    clickLockRef.current = true;
+    setIsSubmitting(true);
+
+    const currentNoCounter = noCounter;
 
     setStep("loveQuestion");
     setNoCounter(0);
+
+    void trackClick("apology", "yes", currentNoCounter);
+
+    unlockClick();
   };
 
-  const handleSecondYes = async () => {
-    await trackClick("loveQuestion", "yes", noCounter);
+  const handleSecondYes = () => {
+    if (clickLockRef.current) return;
+
+    clickLockRef.current = true;
+    setIsSubmitting(true);
+
+    const currentNoCounter = noCounter;
 
     setStep("final");
     setNoCounter(0);
+
+    void trackClick("loveQuestion", "yes", currentNoCounter);
+
+    unlockClick();
   };
 
-  const handleReset = async () => {
-  await trackClick("final", "reset", noCounter);
+  const handleReset = () => {
+    if (clickLockRef.current) return;
 
-  setStep("apology");
-  setNoCounter(0);
+    clickLockRef.current = true;
+    setIsSubmitting(true);
+
+    const currentNoCounter = noCounter;
+
+    setStep("apology");
+    setNoCounter(0);
+
+    void trackClick("final", "reset", currentNoCounter);
+
+    unlockClick();
   };
 
   return (
@@ -135,7 +173,9 @@ export default function Home() {
       </div>
 
       <section className="card">
-        <div className="badge">for someone special <br /> (bang Shaazin)</div>
+        <div className="badge">
+          for someone special <br /> (bang Shaazin)
+        </div>
 
         {step === "apology" && (
           <>
@@ -162,15 +202,20 @@ export default function Home() {
             <div className="buttonGroup">
               <button
                 className="yesButton"
+                disabled={isSubmitting}
                 style={{
                   transform: `scale(${yesScale})`,
                 }}
                 onClick={handleFirstYes}
               >
-                Yes, aku maafin
+                {isSubmitting ? "Sebentar..." : "Yes, aku maafin"}
               </button>
 
-              <button className="noButton" onClick={handleNoClick}>
+              <button
+                className="noButton"
+                disabled={isSubmitting}
+                onClick={handleNoClick}
+              >
                 {noButtonText}
               </button>
             </div>
@@ -200,15 +245,20 @@ export default function Home() {
             <div className="buttonGroup">
               <button
                 className="yesButton"
+                disabled={isSubmitting}
                 style={{
                   transform: `scale(${yesScale})`,
                 }}
                 onClick={handleSecondYes}
               >
-                Yes, aku mau
+                {isSubmitting ? "Sebentar..." : "Yes, aku mau"}
               </button>
 
-              <button className="noButton" onClick={handleNoClick}>
+              <button
+                className="noButton"
+                disabled={isSubmitting}
+                onClick={handleNoClick}
+              >
                 {noButtonText}
               </button>
             </div>
@@ -246,8 +296,12 @@ export default function Home() {
               </p>
             </div>
 
-            <button className="resetButton" onClick={handleReset}>
-              Ulangi dari awal
+            <button
+              className="resetButton"
+              disabled={isSubmitting}
+              onClick={handleReset}
+            >
+              {isSubmitting ? "Mengulang..." : "Ulangi dari awal"}
             </button>
           </>
         )}
