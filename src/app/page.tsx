@@ -25,27 +25,29 @@ export default function Home() {
 
   const clickLockRef = useRef(false);
 
-  useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const personFromUrl = searchParams.get("person");
+useEffect(() => {
+  const searchParams = new URLSearchParams(window.location.search);
+  const personFromUrl = searchParams.get("person");
 
-    const savedPersonLabel = localStorage.getItem("love_person_label");
-    const finalPersonLabel = personFromUrl || savedPersonLabel || "unknown";
+  if (personFromUrl) {
+    localStorage.setItem("love_person_label", personFromUrl);
+    setPersonLabel(personFromUrl);
+  } else {
+    localStorage.removeItem("love_person_label");
+    setPersonLabel("unknown");
+  }
 
-    localStorage.setItem("love_person_label", finalPersonLabel);
-    setPersonLabel(finalPersonLabel);
+  const savedVisitorId = localStorage.getItem("love_visitor_id");
 
-    const savedVisitorId = localStorage.getItem("love_visitor_id");
+  if (savedVisitorId) {
+    setVisitorId(savedVisitorId);
+    return;
+  }
 
-    if (savedVisitorId) {
-      setVisitorId(savedVisitorId);
-      return;
-    }
-
-    const newVisitorId = createVisitorId();
-    localStorage.setItem("love_visitor_id", newVisitorId);
-    setVisitorId(newVisitorId);
-  }, []);
+  const newVisitorId = createVisitorId();
+  localStorage.setItem("love_visitor_id", newVisitorId);
+  setVisitorId(newVisitorId);
+}, []);
 
   const noButtonText = useMemo(() => {
     const texts = [
